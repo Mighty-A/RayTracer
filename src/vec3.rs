@@ -165,7 +165,7 @@ impl Div<f64> for Vec3 {
 }
 
 impl Vec3 {
-    fn elemul(a: Self, b: Self) -> Self {
+    pub fn elemul(a: Self, b: Self) -> Self {
         Self {
             x: a.x * b.x,
             y: a.y * b.y,
@@ -173,7 +173,7 @@ impl Vec3 {
         }
     }
 
-    fn cross(a: Self, b: Self) -> Self {
+    pub fn cross(a: Self, b: Self) -> Self {
         Self {
             x: a.y * b.z - a.z * b.y,
             y: b.x * a.z - a.x * b.z,
@@ -194,13 +194,13 @@ impl Neg for Vec3 {
 }
 
 impl Vec3 {
-    fn length(&self) -> f64 {
+    pub fn length(&self) -> f64 {
         (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
     }
 }
 
 impl Vec3 {
-    fn unit(self) -> Self {
+    pub fn unit(self) -> Self {
         let len = self.length();
         if len == 0.0 {
             panic!();
