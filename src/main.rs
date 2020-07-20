@@ -15,8 +15,10 @@ fn main() {
     for x in 0..1024 {
         for y in 0..512 {
             let pixel = img.get_pixel_mut(x, y);
-            let color = (x / 4) as u8;
-            *pixel = image::Rgb([color, color, color]);
+            let r = (x / 4) as u8;
+            let g = ((512 - y) / 2) as u8;
+            let b = 64;
+            *pixel = image::Rgb([r, g, b]);
         }
         bar.inc(1);
     }

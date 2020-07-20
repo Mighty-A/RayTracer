@@ -112,13 +112,9 @@ impl SubAssign<f64> for Vec3 {
 }
 
 impl Mul for Vec3 {
-    type Output = Self;
-    fn mul(self, other: Self) -> Self {
-        Self {
-            x: self.x * other.x,
-            y: self.y * other.y,
-            z: self.z * other.z,
-        }
+    type Output = f64;
+    fn mul(self, other: Self) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
 }
 
@@ -282,10 +278,7 @@ mod tests {
 
     #[test]
     fn test_mul() {
-        assert_eq!(
-            Vec3::new(1.0, 0.0, -1.0) * Vec3::ones(),
-            Vec3::new(1.0, 0.0, -1.0)
-        );
+        assert_eq!(Vec3::new(1.0, 0.0, -1.0) * Vec3::ones(), 0.0);
     }
 
     #[test]
