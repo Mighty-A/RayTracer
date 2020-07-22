@@ -42,7 +42,7 @@ fn main() {
                 orig: origin,
                 dire: lower_left_corner + horizontal * u + vertical * v - origin,
             };
-            let pixel_color = ray::ray_color(r);
+            let pixel_color = ray_color(&r);
             write_color(&pixel_color, &mut img, x, y);
         }
         bar.inc(1);
@@ -56,4 +56,22 @@ fn write_color(color: &Color, img: &mut RgbImage, x: u32, y: u32) {
     //println!("R:{} G:{} B:{}", color.x, color.y, color.z);
     let pixel = img.get_pixel_mut(x, y);
     *pixel = image::Rgb([color.x as u8, color.y as u8, color.z as u8]);
+}
+
+fn hit_sphere(center: &Point, radius: f64, r: &Ray) -> bool {
+    let oc = r.orig - *center;
+    let a = r.dire * r.dire;
+    let b = (r.dire * oc) * 2.0;
+    let c = oc * oc - radius * radius;
+    let discriminant = b * b - 4.0 * a * c;
+    discriminant > 0.0
+}
+fn ray_color(r: &Ray) -> Color {
+    if hit_sphere(&(Point::new(0.0, 0.0, -1.0)), 0.5, r) {
+        return Color::new(255.0, 0.0, 0.0);
+    }
+    let unit_direction = r.dire.unit();
+    let t = 0.5 * (unit_direction.y + 1.0);
+    Color::new(255.0, 255.0, 255.0) * (1.0 - t)
+        + Color::new(255.0 * 0.5, 255.0 * 0.7, 255.0 * 1.0) * t
 }
