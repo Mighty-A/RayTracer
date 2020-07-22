@@ -12,7 +12,7 @@ pub use vec3::Vec3;
 fn main() {
     // Image
     const RATIO: f64 = 16.0 / 9.0;
-    const WIDTH: u32 = 400;
+    const WIDTH: u32 = 800;
     const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
 
     // Camera
@@ -55,23 +55,32 @@ fn main() {
 fn write_color(color: &Color, img: &mut RgbImage, x: u32, y: u32) {
     //println!("R:{} G:{} B:{}", color.x, color.y, color.z);
     let pixel = img.get_pixel_mut(x, y);
-    *pixel = image::Rgb([color.x as u8, color.y as u8, color.z as u8]);
+    *pixel = image::Rgb([
+        (color.x * 255.0) as u8,
+        (color.y * 255.0) as u8,
+        (color.z * 255.0) as u8,
+    ]);
 }
 
-fn hit_sphere(center: &Point, radius: f64, r: &Ray) -> bool {
+fn hit_sphere(center: &Point, radius: f64, r: &Ray) -> f64 {
     let oc = r.orig - *center;
     let a = r.dire * r.dire;
     let b = (r.dire * oc) * 2.0;
     let c = oc * oc - radius * radius;
     let discriminant = b * b - 4.0 * a * c;
-    discriminant > 0.0
+    if discriminant < 0.0 {
+        -1.0
+    } else {
+        (-b - discriminant.sqrt()) / (2.0 * a)
+    }
 }
 fn ray_color(r: &Ray) -> Color {
-    if hit_sphere(&(Point::new(0.0, 0.0, -1.0)), 0.5, r) {
-        return Color::new(255.0, 0.0, 0.0);
+    let t = hit_sphere(&(Point::new(0.0, 0.0, -1.0)), 0.5, r);
+    if t > 0.0 {
+        let n = (r.at(t) - Vec3::new(0.0, 0.0, -1.0)).unit();
+        return Color::new(n.x + 1.0, n.y + 1.0, n.z + 1.0) * 0.5;
     }
     let unit_direction = r.dire.unit();
     let t = 0.5 * (unit_direction.y + 1.0);
-    Color::new(255.0, 255.0, 255.0) * (1.0 - t)
-        + Color::new(255.0 * 0.5, 255.0 * 0.7, 255.0 * 1.0) * t
+    Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
 }
