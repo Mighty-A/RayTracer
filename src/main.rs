@@ -1,20 +1,27 @@
+mod hittable;
 mod ray;
+mod rtweekend;
 #[allow(clippy::float_cmp)]
 mod vec3;
 use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
 
+pub use hittable::{HitRecord, Hittable, HittableList, Sphere};
 pub use ray::Ray;
+pub use rtweekend::{INFINITY, PI};
 pub use vec3::Color;
 pub use vec3::Point;
 pub use vec3::Vec3;
-
 fn main() {
     // Image
     const RATIO: f64 = 16.0 / 9.0;
     const WIDTH: u32 = 800;
     const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
 
+    // World
+    let mut world = HittableList::new();
+    world.add(Box::new(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5)));
+    world.add(Box::new(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0)));
     // Camera
     let viewport_height = 2.0;
     let viewport_width = RATIO * viewport_height;
@@ -42,7 +49,7 @@ fn main() {
                 orig: origin,
                 dire: lower_left_corner + horizontal * u + vertical * v - origin,
             };
-            let pixel_color = ray_color(&r);
+            let pixel_color = ray_color(&r, &world);
             write_color(&pixel_color, &mut img, x, y);
         }
         bar.inc(1);
@@ -62,23 +69,10 @@ fn write_color(color: &Color, img: &mut RgbImage, x: u32, y: u32) {
     ]);
 }
 
-fn hit_sphere(center: &Point, radius: f64, r: &Ray) -> f64 {
-    let oc = r.orig - *center;
-    let a = r.dire * r.dire;
-    let b = (r.dire * oc) * 2.0;
-    let c = oc * oc - radius * radius;
-    let discriminant = b * b - 4.0 * a * c;
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        (-b - discriminant.sqrt()) / (2.0 * a)
-    }
-}
-fn ray_color(r: &Ray) -> Color {
-    let t = hit_sphere(&(Point::new(0.0, 0.0, -1.0)), 0.5, r);
-    if t > 0.0 {
-        let n = (r.at(t) - Vec3::new(0.0, 0.0, -1.0)).unit();
-        return Color::new(n.x + 1.0, n.y + 1.0, n.z + 1.0) * 0.5;
+fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
+    let mut rec = HitRecord::new();
+    if world.hit(r, 0.0, INFINITY, &mut rec) {
+        return (rec.normal + Color::new(1.0, 1.0, 1.0)) * 0.5;
     }
     let unit_direction = r.dire.unit();
     let t = 0.5 * (unit_direction.y + 1.0);
