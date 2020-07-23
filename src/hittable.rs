@@ -1,21 +1,25 @@
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Point;
 use crate::vec3::Vec3;
+use std::sync::Arc;
 use std::vec;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct HitRecord {
-    pub p: Point,               // the point where ray hit surface 
+    pub p: Point, // the point where ray hit surface
     pub normal: Vec3,
+    pub mat_ptr: Arc<dyn Material>,
     pub t: f64,
     pub front_face: bool,
 }
 
 impl HitRecord {
-    pub fn new() -> Self {
+    pub fn new(m: Arc<dyn Material>) -> Self {
         Self {
             p: Point::new(0.0, 0.0, 0.0),
             normal: Vec3::new(0.0, 0.0, 0.0),
+            mat_ptr: m,
             t: 0.0,
             front_face: false,
         }
@@ -30,26 +34,22 @@ impl HitRecord {
     }
 }
 
-impl Default for HitRecord {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 pub trait Hittable {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Sphere {
     pub center: Point,
     pub radius: f64,
+    pub mat_ptr: Arc<dyn Material>,
 }
 
 impl Sphere {
-    pub fn new(c: Point, r: f64) -> Self {
+    pub fn new(c: Point, r: f64, m: Arc<dyn Material>) -> Self {
         Self {
             center: c,
             radius: r,
+            mat_ptr: m,
         }
     }
 }
@@ -71,6 +71,7 @@ impl Hittable for Sphere {
                 rec.p = r.at(rec.t);
                 let outward_normal = (rec.p - self.center) / self.radius;
                 rec.set_face_normal(r, &outward_normal);
+                rec.mat_ptr = self.mat_ptr.clone();
                 return true;
             }
 
@@ -80,6 +81,7 @@ impl Hittable for Sphere {
                 rec.p = r.at(rec.t);
                 let outward_normal = (rec.p - self.center) / self.radius;
                 rec.set_face_normal(r, &outward_normal);
+                rec.mat_ptr = self.mat_ptr.clone();
                 return true;
             }
         }

@@ -1,5 +1,5 @@
-use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 use crate::rtweekend::{random_double, PI};
+use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3 {
@@ -29,11 +29,15 @@ impl Vec3 {
     }
 
     pub fn random(min: f64, max: f64) -> Self {
-        Self::new(random_double(min, max), random_double(min, max), random_double(min, max))
+        Self::new(
+            random_double(min, max),
+            random_double(min, max),
+            random_double(min, max),
+        )
     }
 }
 
-pub fn random_in_unit_sphere() -> Vec3{
+pub fn random_in_unit_sphere() -> Vec3 {
     loop {
         let p = Vec3::random(-1.0, 1.0);
         if p.squared_length() >= 1.0 {
@@ -50,15 +54,20 @@ pub fn random_unit_vector() -> Vec3 {
     Vec3::new(r * a.cos(), r * a.sin(), z)
 }
 
-
+/*
 pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
     let in_unit_sphere = random_in_unit_sphere();
     if in_unit_sphere * *normal > 0.0 {
-        return in_unit_sphere;
+        in_unit_sphere
     } else {
-        return -in_unit_sphere;
+        -in_unit_sphere
     }
+}*/
+
+pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
+    *v - *n * 2.0 * (*v * *n)
 }
+
 impl Add for Vec3 {
     type Output = Self;
 

@@ -1,9 +1,11 @@
 use crate::hittable;
+use crate::material::Lambertian;
 use crate::ray::Ray;
 pub use crate::rtweekend::{clamp, INFINITY, PI};
-use crate::vec3::{Color, Point, random_in_hemisphere};
+use crate::vec3::{Color, Vec3};
 pub use hittable::{HitRecord, Hittable, HittableList, Sphere};
 use image::RgbImage;
+use std::sync::Arc;
 
 pub fn write_color(
     pixel_color: &Color,
@@ -30,15 +32,25 @@ pub fn write_color(
 }
 
 pub fn ray_color(r: &Ray, world: &dyn Hittable, depth: i32) -> Color {
-    let mut rec = HitRecord::new();
+    let mut rec = HitRecord::new(Arc::new(Lambertian::new(&Color::new(0.0, 0.0, 0.0))));
 
     if depth <= 0 {
         return Color::new(0.0, 0.0, 0.0);
     }
 
     if world.hit(r, 0.001, INFINITY, &mut rec) {
-        let target: Point = rec.p + random_in_hemisphere(&rec.normal);
-        return ray_color(&Ray{orig: rec.p, dire: target - rec.p,}, world, depth - 1) * 0.5;            // recursive
+        let mut scattered = Ray {
+            orig: Vec3::ones(),
+            dire: Vec3::ones(),
+        };
+        let mut attenuation = Color::new(0.0, 0.0, 0.0);
+        if rec
+            .mat_ptr
+            .scatter(&r, &rec, &mut attenuation, &mut scattered)
+        {
+            return Vec3::elemul(attenuation, ray_color(&scattered, world, depth - 1));
+        }
+        return Color::new(0.0, 0.0, 0.0);
     }
     let unit_direction = r.dire.unit();
     let t = 0.5 * (unit_direction.y + 1.0);

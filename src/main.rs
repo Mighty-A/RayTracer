@@ -1,15 +1,18 @@
 mod camera;
 mod color;
 mod hittable;
+mod material;
 mod ray;
 mod rtweekend;
 #[allow(clippy::float_cmp)]
 mod vec3;
 use image::{ImageBuffer, RgbImage};
 use indicatif::ProgressBar;
+use std::sync::Arc;
 
 pub use color::{ray_color, write_color};
 pub use hittable::{HitRecord, Hittable, HittableList, Sphere};
+pub use material::{Lambertian, Material, Metal};
 pub use ray::Ray;
 pub use rtweekend::{random_double, INFINITY, PI};
 pub use vec3::Color;
@@ -24,8 +27,32 @@ fn main() {
     const MAX_DEPTH: i32 = 50;
     // World
     let mut world = HittableList::new();
-    world.add(Box::new(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5)));
-    world.add(Box::new(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0)));
+
+    let material_ground = Arc::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
+    let material_center = Arc::new(Lambertian::new(&Color::new(0.7, 0.3, 0.3)));
+    let material_left = Arc::new(Metal::new(&Color::new(0.8, 0.8, 0.8), 0.3));
+    let material_right = Arc::new(Metal::new(&Color::new(0.8, 0.6, 0.2), 1.0));
+
+    world.add(Box::new(Sphere::new(
+        Point::new(0.0, -100.5, -1.0),
+        100.0,
+        material_ground,
+    )));
+    world.add(Box::new(Sphere::new(
+        Point::new(0.0, 0.0, -1.0),
+        0.5,
+        material_center,
+    )));
+    world.add(Box::new(Sphere::new(
+        Point::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left,
+    )));
+    world.add(Box::new(Sphere::new(
+        Point::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right,
+    )));
 
     // Camera
     let cam = camera::Camera::new();
