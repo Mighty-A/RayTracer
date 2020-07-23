@@ -68,6 +68,13 @@ pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
     *v - *n * 2.0 * (*v * *n)
 }
 
+pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
+    let cos_theta = (-uv) * n;
+    let r_out_prep: Vec3 = (uv + n * cos_theta) * etai_over_etat;
+    let r_out_parallel: Vec3 = n * (-(1.0 - r_out_prep.squared_length()).abs().sqrt());
+    r_out_prep + r_out_parallel
+}
+
 impl Add for Vec3 {
     type Output = Self;
 

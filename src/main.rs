@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 pub use color::{ray_color, write_color};
 pub use hittable::{HitRecord, Hittable, HittableList, Sphere};
-pub use material::{Lambertian, Material, Metal};
+pub use material::{Dielectric, Lambertian, Material, Metal};
 pub use ray::Ray;
 pub use rtweekend::{random_double, INFINITY, PI};
 pub use vec3::Color;
@@ -29,8 +29,8 @@ fn main() {
     let mut world = HittableList::new();
 
     let material_ground = Arc::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
-    let material_center = Arc::new(Lambertian::new(&Color::new(0.7, 0.3, 0.3)));
-    let material_left = Arc::new(Metal::new(&Color::new(0.8, 0.8, 0.8), 0.3));
+    let material_center = Arc::new(Dielectric::new(1.5));
+    let material_left = Arc::new(Dielectric::new(1.5));
     let material_right = Arc::new(Metal::new(&Color::new(0.8, 0.6, 0.2), 1.0));
 
     world.add(Box::new(Sphere::new(
