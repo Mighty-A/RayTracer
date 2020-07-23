@@ -18,9 +18,9 @@ pub fn write_color(
     let mut b = pixel_color.z;
 
     let scale = 1.0 / samples_per_pixel as f64;
-    r *= scale;
-    g *= scale;
-    b *= scale;
+    r = (scale * r).sqrt();
+    g = (scale * g).sqrt();
+    b = (scale * b).sqrt();
 
     *pixel = image::Rgb([
         (clamp(r, 0.0, 0.999) * 255.0) as u8,
