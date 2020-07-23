@@ -1,5 +1,6 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
+use crate::rtweekend::random_double;
 use crate::vec3::{random_in_unit_sphere, random_unit_vector, reflect, refract, Color};
 
 pub trait Material {
@@ -97,6 +98,27 @@ impl Material for Dielectric {
             self.ref_idx
         };
         let unit_direction = r_in.dire.unit();
+
+        let cos_theta = (-unit_direction * rec.normal).min(1.0);
+        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
+        if etai_over_etat * sin_theta > 1.0 {
+            // total internal reflection
+            let reflected = reflect(&unit_direction, &rec.normal);
+            *scattered = Ray {
+                orig: rec.p,
+                dire: reflected,
+            };
+            return true;
+        }
+        let reflect_prob = schlick(cos_theta, etai_over_etat);
+        if random_double(0.0, 1.0) < reflect_prob {
+            let reflected = reflect(&unit_direction, &rec.normal);
+            *scattered = Ray {
+                orig: rec.p,
+                dire: reflected,
+            };
+            return true;
+        }
         let refracted = refract(unit_direction, rec.normal, etai_over_etat);
         *scattered = Ray {
             orig: rec.p,
@@ -104,4 +126,10 @@ impl Material for Dielectric {
         };
         true
     }
+}
+
+pub fn schlick(cosine: f64, ref_idx: f64) -> f64 {
+    let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
+    r0 = r0 * r0;
+    r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
 }
