@@ -1,7 +1,7 @@
 use crate::hittable;
 use crate::ray::Ray;
 pub use crate::rtweekend::{clamp, INFINITY, PI};
-use crate::vec3::{Color, Point, random_in_unit_sphere};
+use crate::vec3::{Color, Point, random_in_hemisphere};
 pub use hittable::{HitRecord, Hittable, HittableList, Sphere};
 use image::RgbImage;
 
@@ -36,8 +36,8 @@ pub fn ray_color(r: &Ray, world: &dyn Hittable, depth: i32) -> Color {
         return Color::new(0.0, 0.0, 0.0);
     }
 
-    if world.hit(r, 0.0, INFINITY, &mut rec) {
-        let target: Point = rec.p + rec.normal + random_in_unit_sphere();
+    if world.hit(r, 0.001, INFINITY, &mut rec) {
+        let target: Point = rec.p + random_in_hemisphere(&rec.normal);
         return ray_color(&Ray{orig: rec.p, dire: target - rec.p,}, world, depth - 1) * 0.5;            // recursive
     }
     let unit_direction = r.dire.unit();
