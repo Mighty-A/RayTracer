@@ -31,8 +31,7 @@ fn main() {
     let material_ground = Arc::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
     let material_center = Arc::new(Lambertian::new(&Color::new(0.1, 0.2, 0.5)));
     let material_left = Arc::new(Dielectric::new(1.5));
-    let material_left1 = Arc::new(Dielectric::new(1.5));
-    let material_right = Arc::new(Metal::new(&Color::new(0.8, 0.6, 0.2), 0.0));
+    let material_right = Arc::new(Metal::new(&Color::new(0.8, 0.6, 0.2), 0.3));
 
     world.add(Box::new(Sphere::new(
         Point::new(0.0, -100.5, -1.0),
@@ -47,21 +46,26 @@ fn main() {
     world.add(Box::new(Sphere::new(
         Point::new(-1.0, 0.0, -1.0),
         0.5,
-        material_left,
+        material_left.clone(),
     )));
     world.add(Box::new(Sphere::new(
         Point::new(-1.0, 0.0, -1.0),
-        -0.4,                                    // negative to form a bubble
-        material_left1,
+        -0.45,
+        material_left,
     )));
     world.add(Box::new(Sphere::new(
         Point::new(1.0, 0.0, -1.0),
         0.5,
         material_right,
     )));
-
     // Camera
-    let cam = camera::Camera::new();
+    let cam = camera::Camera::new(
+        Point::new(-2.0, 2.0, 1.0),
+        Point::new(0.0, 0.0, -1.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        40.0,
+        RATIO,
+    );
 
     // Render
     let mut img: RgbImage = ImageBuffer::new(WIDTH, HEIGHT);
