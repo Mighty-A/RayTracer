@@ -5,7 +5,7 @@ use std::vec;
 
 #[derive(Clone, Debug)]
 pub struct HitRecord {
-    pub p: Point,
+    pub p: Point,               // the point where ray hit surface 
     pub normal: Vec3,
     pub t: f64,
     pub front_face: bool,

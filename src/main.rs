@@ -21,7 +21,7 @@ fn main() {
     const WIDTH: u32 = 800;
     const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
     const SAMPLE_PER_PIXEL: i32 = 100;
-
+    const MAX_DEPTH: i32 = 50;
     // World
     let mut world = HittableList::new();
     world.add(Box::new(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5)));
@@ -32,7 +32,7 @@ fn main() {
 
     // Render
     let mut img: RgbImage = ImageBuffer::new(WIDTH, HEIGHT);
-    let bar = ProgressBar::new(HEIGHT as u64);
+    let bar = ProgressBar::new(WIDTH as u64);
 
     //let pixel_color: [[Color; WIDTH as usize]; HEIGHT as usize] = [[Color::new(0.0, 0.0, 0.0); WIDTH as usize]; HEIGHT as usize];
 
@@ -45,7 +45,7 @@ fn main() {
                 let u = (x as f64 + random_double(0.0, 1.0)) / (WIDTH - 1) as f64;
                 let v = ((HEIGHT - y) as f64 + random_double(0.0, 1.0)) / (HEIGHT - 1) as f64;
                 let r = cam.get_ray(u, v);
-                pixel_color += ray_color(&r, &world);
+                pixel_color += ray_color(&r, &world, MAX_DEPTH);
             }
             write_color(&pixel_color, &mut img, x, y, SAMPLE_PER_PIXEL);
         }

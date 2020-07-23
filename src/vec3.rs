@@ -1,4 +1,5 @@
 use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
+use crate::rtweekend::random_double;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3 {
@@ -25,6 +26,20 @@ impl Vec3 {
 
     pub fn squared_length(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
+    }
+
+    pub fn random(min: f64, max: f64) -> Self {
+        Self::new(random_double(min, max), random_double(min, max), random_double(min, max))
+    }
+}
+
+pub fn random_in_unit_sphere() -> Vec3{
+    loop {
+        let p = Vec3::random(-1.0, 1.0);
+        if p.squared_length() >= 1.0 {
+            continue;
+        }
+        return p;
     }
 }
 
