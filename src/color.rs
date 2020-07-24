@@ -35,10 +35,10 @@ pub fn ray_color(r: &Ray, world: &dyn Hittable, depth: i32) -> Color {
     let mut rec = HitRecord::new(Arc::new(Lambertian::new(&Color::new(0.0, 0.0, 0.0))));
 
     if depth <= 0 {
-        return Color::new(0.0, 0.0, 0.0);
+        return Color::new(1.0, 1.0, 1.0);
     }
 
-    if world.hit(r, 0.001, INFINITY, &mut rec) {
+    if world.hit(r, 0.0001, INFINITY, &mut rec) {
         let mut scattered = Ray {
             orig: Vec3::ones(),
             dire: Vec3::ones(),
