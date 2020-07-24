@@ -20,50 +20,20 @@ pub use vec3::Point;
 pub use vec3::Vec3;
 fn main() {
     // Image
-    const RATIO: f64 = 16.0 / 9.0;
-    const WIDTH: u32 = 800;
+    const RATIO: f64 = 3.0 / 2.0;
+    const WIDTH: u32 = 1200;
     const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
-    const SAMPLE_PER_PIXEL: i32 = 100;
+    const SAMPLE_PER_PIXEL: i32 = 64;
     const MAX_DEPTH: i32 = 50;
     // World
-    let mut world = HittableList::new();
+    let world = random_scene();
 
-    let material_ground = Arc::new(Lambertian::new(&Color::new(0.8, 0.8, 0.0)));
-    let material_center = Arc::new(Lambertian::new(&Color::new(0.1, 0.2, 0.5)));
-    let material_left = Arc::new(Dielectric::new(1.5));
-    let material_right = Arc::new(Metal::new(&Color::new(0.8, 0.6, 0.2), 0.3));
-
-    world.add(Box::new(Sphere::new(
-        Point::new(0.0, -100.5, -1.0),
-        100.0,
-        material_ground,
-    )));
-    world.add(Box::new(Sphere::new(
-        Point::new(0.0, 0.0, -1.0),
-        0.5,
-        material_center,
-    )));
-    world.add(Box::new(Sphere::new(
-        Point::new(-1.0, 0.0, -1.0),
-        0.5,
-        material_left.clone(),
-    )));
-    world.add(Box::new(Sphere::new(
-        Point::new(-1.0, 0.0, -1.0),
-        -0.45,
-        material_left,
-    )));
-    world.add(Box::new(Sphere::new(
-        Point::new(1.0, 0.0, -1.0),
-        0.5,
-        material_right,
-    )));
     // Camera
-    let lookfrom = Point::new(3.0, 3.0, 2.0);
-    let lookat = Point::new(0.0, 0.0, -1.0);
+    let lookfrom = Point::new(13.0, 2.0, 3.0);
+    let lookat = Point::new(0.0, 0.0, 0.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
-    let dist_to_focus = (lookfrom - lookat).length();
-    let aperture = 2.0;
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
     let cam = camera::Camera::new(lookfrom, lookat, vup, 20.0, RATIO, aperture, dist_to_focus);
 
     // Render
@@ -90,4 +60,67 @@ fn main() {
 
     img.save("output/test.png").unwrap();
     bar.finish();
+}
+
+pub fn random_scene() -> HittableList {
+    let mut world = HittableList::new();
+
+    let ground_material = Arc::new(Lambertian::new(&Color::new(0.5, 0.5, 0.5)));
+    world.add(Box::new(Sphere::new(
+        Point::new(0.0, -1000.0, 0.0),
+        1000.0,
+        ground_material,
+    )));
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = random_double(0.0, 1.0);
+            let center = Point::new(
+                a as f64 + 0.9 * random_double(0.0, 1.0),
+                0.2,
+                b as f64 + 0.9 * random_double(0.0, 1.0),
+            );
+
+            if (center - Point::new(4.0, 0.2, 0.0)).length() > 0.9 {
+                if choose_mat < 0.8 {
+                    // diffuse
+                    let albedo = Vec3::elemul(Color::random(0.0, 1.0), Color::random(0.0, 1.0));
+                    let sphere_material = Arc::new(Lambertian::new(&albedo));
+                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material)));
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let albedo = Color::random(0.5, 1.0);
+                    let fuzz = random_double(0.0, 0.5);
+                    let sphere_material = Arc::new(Metal::new(&albedo, fuzz));
+                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material)));
+                } else {
+                    // glass
+                    let sphere_material = Arc::new(Dielectric::new(1.5));
+                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material)));
+                }
+            }
+        }
+    }
+
+    let material1 = Arc::new(Dielectric::new(1.5));
+    world.add(Box::new(Sphere::new(
+        Point::new(0.0, 1.0, 0.0),
+        1.0,
+        material1,
+    )));
+
+    let material2 = Arc::new(Lambertian::new(&Color::new(0.4, 0.2, 0.1)));
+    world.add(Box::new(Sphere::new(
+        Point::new(-4.0, 1.0, 0.0),
+        1.0,
+        material2,
+    )));
+
+    let material3 = Arc::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
+    world.add(Box::new(Sphere::new(
+        Point::new(4.0, 1.0, 0.0),
+        1.0,
+        material3,
+    )));
+    world
 }
