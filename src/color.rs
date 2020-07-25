@@ -42,6 +42,7 @@ pub fn ray_color(r: &Ray, world: &dyn Hittable, depth: i32) -> Color {
         let mut scattered = Ray {
             orig: Vec3::ones(),
             dire: Vec3::ones(),
+            tm: 0.0,
         };
         let mut attenuation = Color::new(0.0, 0.0, 0.0);
         if rec

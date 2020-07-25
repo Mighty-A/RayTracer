@@ -3,6 +3,7 @@ use crate::vec3::Vec3;
 pub struct Ray {
     pub orig: Vec3,
     pub dire: Vec3,
+    pub tm: f64,
 }
 
 impl Ray {

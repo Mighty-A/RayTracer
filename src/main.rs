@@ -11,7 +11,7 @@ use indicatif::ProgressBar;
 use std::sync::Arc;
 
 pub use color::{ray_color, write_color};
-pub use hittable::{HitRecord, Hittable, HittableList, Sphere};
+pub use hittable::{HitRecord, Hittable, HittableList, MovingSphere, Sphere};
 pub use material::{Dielectric, Lambertian, Material, Metal};
 pub use ray::Ray;
 pub use rtweekend::{random_double, INFINITY, PI};
@@ -20,10 +20,10 @@ pub use vec3::Point;
 pub use vec3::Vec3;
 fn main() {
     // Image
-    const RATIO: f64 = 3.0 / 2.0;
-    const WIDTH: u32 = 1200;
+    const RATIO: f64 = 16.0 / 9.0;
+    const WIDTH: u32 = 400;
     const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
-    const SAMPLE_PER_PIXEL: i32 = 64;
+    const SAMPLE_PER_PIXEL: i32 = 100;
     const MAX_DEPTH: i32 = 50;
     // World
     let world = random_scene();
@@ -34,7 +34,17 @@ fn main() {
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
     let aperture = 0.1;
-    let cam = camera::Camera::new(lookfrom, lookat, vup, 20.0, RATIO, aperture, dist_to_focus);
+    let cam = camera::Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        20.0,
+        RATIO,
+        aperture,
+        dist_to_focus,
+        0.0,
+        1.0,
+    );
 
     // Render
     let mut img: RgbImage = ImageBuffer::new(WIDTH, HEIGHT);
@@ -86,7 +96,15 @@ pub fn random_scene() -> HittableList {
                     // diffuse
                     let albedo = Vec3::elemul(Color::random(0.0, 1.0), Color::random(0.0, 1.0));
                     let sphere_material = Arc::new(Lambertian::new(&albedo));
-                    world.add(Box::new(Sphere::new(center, 0.2, sphere_material)));
+                    let center2 = center + Vec3::new(0.0, random_double(0.0, 0.5), 0.0);
+                    world.add(Box::new(MovingSphere::new(
+                        center,
+                        center2,
+                        0.0,
+                        1.0,
+                        0.2,
+                        sphere_material,
+                    )));
                 } else if choose_mat < 0.95 {
                     // metal
                     let albedo = Color::random(0.5, 1.0);

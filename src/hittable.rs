@@ -131,3 +131,65 @@ impl Hittable for HittableList {
         hit_anything
     }
 }
+
+pub struct MovingSphere {
+    pub center0: Point,
+    pub center1: Point,
+    pub time0: f64,
+    pub time1: f64,
+    pub radius: f64,
+    pub mat_ptr: Arc<dyn Material>,
+}
+
+impl MovingSphere {
+    pub fn new(cen0: Point, cen1: Point, t0: f64, t1: f64, r: f64, m: Arc<dyn Material>) -> Self {
+        Self {
+            center0: cen0,
+            center1: cen1,
+            time0: t0,
+            time1: t1,
+            radius: r,
+            mat_ptr: m,
+        }
+    }
+
+    pub fn center(&self, time: f64) -> Point {
+        self.center0
+            + (self.center1 - self.center0) * ((time - self.time0) / (self.time1 - self.time0))
+    }
+}
+
+impl Hittable for MovingSphere {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let oc = r.orig - self.center(r.tm);
+        let a = r.dire.squared_length();
+        let half_b = oc * r.dire;
+        let c = oc.squared_length() - self.radius * self.radius;
+        let discriminant = half_b * half_b - a * c;
+
+        if discriminant > 0.0 {
+            let root = discriminant.sqrt();
+
+            let temp = (-half_b - root) / a;
+            if temp < t_max && temp > t_min {
+                rec.t = temp;
+                rec.p = r.at(rec.t);
+                let outward_normal = (rec.p - self.center(r.tm)) / self.radius;
+                rec.set_face_normal(r, &outward_normal);
+                rec.mat_ptr = self.mat_ptr.clone();
+                return true;
+            }
+
+            let temp = (-half_b + root) / a;
+            if temp < t_max && temp > t_min {
+                rec.t = temp;
+                rec.p = r.at(rec.t);
+                let outward_normal = (rec.p - self.center(r.tm)) / self.radius;
+                rec.set_face_normal(r, &outward_normal);
+                rec.mat_ptr = self.mat_ptr.clone();
+                return true;
+            }
+        }
+        false
+    }
+}
