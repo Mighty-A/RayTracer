@@ -18,9 +18,7 @@ impl AABB {
             let mut t0 = (self._min[a] - r.orig[a]) * inv_d;
             let mut t1 = (self._max[a] - r.orig[a]) * inv_d;
             if inv_d < 0.0 {
-                let tmp = t0;
-                t0 = t1;
-                t1 = tmp;
+                std::mem::swap(&mut t0, &mut t1);
             }
             t0 = if t0 > tmin { t0 } else { tmin };
             t1 = if t1 < tmax { t1 } else { tmax };

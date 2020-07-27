@@ -13,6 +13,7 @@ use indicatif::ProgressBar;
 use std::sync::Arc;
 
 pub use bvh::*;
+pub use camera::*;
 pub use color::{ray_color, write_color};
 pub use hittable::{HitRecord, Hittable, HittableList, MovingSphere, Sphere};
 pub use material::{Dielectric, Lambertian, Material, Metal};
@@ -40,14 +41,16 @@ fn main() {
     let vup = Vec3::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
     let aperture = 0.1;
-    let cam = camera::Camera::new(
+    let cam = Camera::new(
         lookfrom,
         lookat,
         vup,
-        20.0,
-        RATIO,
-        aperture,
-        dist_to_focus,
+        CameraInfo {
+            vfov: 20.0,
+            aspect_ratio: RATIO,
+            aperture,
+            focus_dist: dist_to_focus,
+        },
         0.0,
         1.0,
     );
