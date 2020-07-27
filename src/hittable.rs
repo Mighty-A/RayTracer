@@ -1,3 +1,4 @@
+use crate::aabb::*;
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Point;
@@ -36,6 +37,7 @@ impl HitRecord {
 
 pub trait Hittable {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
+    fn bounding_box(&self, t0: f64, t1: f64, output_box: &mut AABB) -> bool;
 }
 
 pub struct Sphere {
@@ -87,10 +89,18 @@ impl Hittable for Sphere {
         }
         false
     }
+
+    fn bounding_box(&self, _t0: f64, _t1: f64, output_box: &mut AABB) -> bool {
+        *output_box = AABB {
+            _min: self.center - Vec3::new(self.radius, self.radius, self.radius),
+            _max: self.center + Vec3::new(self.radius, self.radius, self.radius),
+        };
+        true
+    }
 }
 
 pub struct HittableList {
-    pub objects: vec::Vec<Box<dyn Hittable>>,
+    pub objects: vec::Vec<Arc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -104,7 +114,7 @@ impl HittableList {
         self.objects.clear();
     }
 
-    pub fn add(&mut self, object: Box<dyn Hittable>) {
+    pub fn add(&mut self, object: Arc<dyn Hittable>) {
         self.objects.push(object);
     }
 }
@@ -129,6 +139,26 @@ impl Hittable for HittableList {
             }
         }
         hit_anything
+    }
+
+    fn bounding_box(&self, t0: f64, t1: f64, output_box: &mut AABB) -> bool {
+        if self.objects.is_empty() {
+            return false;
+        }
+        let mut temp_box = AABB::new(&Point::ones(), &Point::ones());
+        let mut first_box = true;
+        for object in &self.objects {
+            if !(object.bounding_box(t0, t1, &mut temp_box)) {
+                return false;
+            }
+            *output_box = if first_box {
+                temp_box.clone()
+            } else {
+                surrounding_box(output_box, &temp_box)
+            };
+            first_box = false;
+        }
+        true
     }
 }
 
@@ -191,5 +221,18 @@ impl Hittable for MovingSphere {
             }
         }
         false
+    }
+
+    fn bounding_box(&self, t0: f64, t1: f64, output_box: &mut AABB) -> bool {
+        let box0 = AABB {
+            _min: self.center(t0) - Vec3::new(self.radius, self.radius, self.radius),
+            _max: self.center(t0) + Vec3::new(self.radius, self.radius, self.radius),
+        };
+        let box1 = AABB {
+            _min: self.center(t1) - Vec3::new(self.radius, self.radius, self.radius),
+            _max: self.center(t1) + Vec3::new(self.radius, self.radius, self.radius),
+        };
+        *output_box = surrounding_box(&box0, &box1);
+        true
     }
 }
