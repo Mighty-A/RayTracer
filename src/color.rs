@@ -32,7 +32,7 @@ pub fn write_color(
 }
 
 pub fn ray_color(r: &Ray, world: &dyn Hittable, depth: i32) -> Color {
-    let mut rec = HitRecord::new(Arc::new(Lambertian::new(&Color::new(0.0, 0.0, 0.0))));
+    let mut rec = HitRecord::new(Arc::new(Lambertian::new(Color::new(0.0, 0.0, 0.0))));
 
     if depth <= 0 {
         return Color::new(1.0, 1.0, 1.0);

@@ -1,6 +1,7 @@
 use crate::aabb::*;
 use crate::material::Material;
 use crate::ray::Ray;
+use crate::rtweekend::*;
 use crate::vec3::Point;
 use crate::vec3::Vec3;
 use std::sync::Arc;
@@ -12,6 +13,8 @@ pub struct HitRecord {
     pub normal: Vec3,
     pub mat_ptr: Arc<dyn Material>,
     pub t: f64,
+    pub u: f64,
+    pub v: f64,
     pub front_face: bool,
 }
 
@@ -22,6 +25,8 @@ impl HitRecord {
             normal: Vec3::new(0.0, 0.0, 0.0),
             mat_ptr: m,
             t: 0.0,
+            u: 0.0,
+            v: 0.0,
             front_face: false,
         }
     }
@@ -56,6 +61,13 @@ impl Sphere {
     }
 }
 
+pub fn get_sphere_uv(p: &Vec3, u: &mut f64, v: &mut f64) {
+    let phi = p.z.atan2(p.x);
+    let theta = p.y.asin();
+    *u = 1.0 - (phi + PI) / (2.0 * PI);
+    *v = (theta + PI / 2.0) / PI;
+}
+
 impl Hittable for Sphere {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
         let oc = r.orig - self.center;
@@ -73,6 +85,11 @@ impl Hittable for Sphere {
                 rec.p = r.at(rec.t);
                 let outward_normal = (rec.p - self.center) / self.radius;
                 rec.set_face_normal(r, &outward_normal);
+                get_sphere_uv(
+                    &((rec.p - self.center) / self.radius),
+                    &mut rec.u,
+                    &mut rec.v,
+                );
                 rec.mat_ptr = self.mat_ptr.clone();
                 return true;
             }
@@ -83,6 +100,11 @@ impl Hittable for Sphere {
                 rec.p = r.at(rec.t);
                 let outward_normal = (rec.p - self.center) / self.radius;
                 rec.set_face_normal(r, &outward_normal);
+                get_sphere_uv(
+                    &((rec.p - self.center) / self.radius),
+                    &mut rec.u,
+                    &mut rec.v,
+                );
                 rec.mat_ptr = self.mat_ptr.clone();
                 return true;
             }

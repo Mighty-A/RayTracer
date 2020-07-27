@@ -1,7 +1,9 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::rtweekend::random_double;
+use crate::texture::*;
 use crate::vec3::{random_in_unit_sphere, random_unit_vector, reflect, refract, Color};
+use std::sync::Arc;
 
 pub trait Material {
     fn scatter(
@@ -14,12 +16,14 @@ pub trait Material {
 }
 
 pub struct Lambertian {
-    albedo: Color,
+    pub albedo: Arc<dyn Texture>,
 }
 
 impl Lambertian {
-    pub fn new(a: &Color) -> Self {
-        Self { albedo: *a }
+    pub fn new(a: Color) -> Self {
+        Self {
+            albedo: Arc::new(SolidColor::new(a)),
+        }
     }
 }
 
@@ -37,14 +41,14 @@ impl Material for Lambertian {
             dire: scatter_direction,
             tm: r_in.tm,
         };
-        *attenuation = self.albedo;
+        *attenuation = self.albedo.value(rec.u, rec.v, &rec.p);
         true
     }
 }
 
 pub struct Metal {
-    albedo: Color,
-    fuzz: f64,
+    pub albedo: Color,
+    pub fuzz: f64,
 }
 
 impl Metal {

@@ -6,6 +6,7 @@ mod hittable;
 mod material;
 mod ray;
 mod rtweekend;
+mod texture;
 #[allow(clippy::float_cmp)]
 mod vec3;
 use image::{ImageBuffer, RgbImage};
@@ -19,6 +20,7 @@ pub use hittable::{HitRecord, Hittable, HittableList, MovingSphere, Sphere};
 pub use material::{Dielectric, Lambertian, Material, Metal};
 pub use ray::Ray;
 pub use rtweekend::{random_double, INFINITY, PI};
+pub use texture::*;
 pub use vec3::Color;
 pub use vec3::Point;
 pub use vec3::Vec3;
@@ -83,8 +85,11 @@ fn main() {
 
 pub fn random_scene() -> HittableList {
     let mut world = HittableList::new();
-
-    let ground_material = Arc::new(Lambertian::new(&Color::new(0.5, 0.5, 0.5)));
+    let checker = Arc::new(CheckerTexture::new(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+    let ground_material = Arc::new(Lambertian { albedo: checker });
     world.add(Arc::new(Sphere::new(
         Point::new(0.0, -1000.0, 0.0),
         1000.0,
@@ -104,7 +109,7 @@ pub fn random_scene() -> HittableList {
                 if choose_mat < 0.8 {
                     // diffuse
                     let albedo = Vec3::elemul(Color::random(0.0, 1.0), Color::random(0.0, 1.0));
-                    let sphere_material = Arc::new(Lambertian::new(&albedo));
+                    let sphere_material = Arc::new(Lambertian::new(albedo));
                     let center2 = center + Vec3::new(0.0, random_double(0.0, 0.5), 0.0);
                     world.add(Arc::new(MovingSphere::new(
                         center,
@@ -136,7 +141,7 @@ pub fn random_scene() -> HittableList {
         material1,
     )));
 
-    let material2 = Arc::new(Lambertian::new(&Color::new(0.4, 0.2, 0.1)));
+    let material2 = Arc::new(Lambertian::new(Color::new(0.4, 0.2, 0.1)));
     world.add(Arc::new(Sphere::new(
         Point::new(-4.0, 1.0, 0.0),
         1.0,
