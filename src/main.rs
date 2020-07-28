@@ -5,6 +5,7 @@ mod camera;
 mod color;
 mod hittable;
 mod material;
+mod perlin;
 mod ray;
 mod rtweekend;
 mod texture;
@@ -55,9 +56,9 @@ fn main() {
     let mut aperture = 0.0;
     let mut vfov = 40.0;
     let background;
-    let mut samples_per_pixel = 16;
+    let mut samples_per_pixel = 64;
 
-    let scene = 4;
+    let scene = 6;
     match scene {
         1 => {
             world = random_scene();
@@ -90,6 +91,20 @@ fn main() {
             vfov = 40.0;
             background = Color::new(0.0, 0.0, 0.0);
             samples_per_pixel = 300;
+        }
+        5 => {
+            world = two_perlin_spheres();
+            lookfrom = Point::new(13.0, 2.0, 3.0);
+            lookat = Point::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+            background = Color::new(0.5, 0.8, 0.8);
+        }
+        6 => {
+            world = earth();
+            lookfrom = Point::new(13.0, 2.0, 3.0);
+            lookat = Point::new(0.0, 0.0, 0.0);
+            vfov = 20.0;
+            background = Color::new(0.5, 0.8, 0.8);
         }
         _ => {
             background = Color::new(0.0, 0.0, 0.0);
@@ -350,4 +365,39 @@ pub fn light_demo() -> BVHNode {
         material1,
     )));
     BVHNode::new(&mut world, 0.0, 0.1)
+}
+
+fn two_perlin_spheres() -> BVHNode {
+    let mut world = HittableList::new();
+
+    let pertext = Arc::new(NoiseTexture::new(4.0));
+    world.add(Arc::new(Sphere::new(
+        Point::new(0.0, -1000.0, 0.0),
+        1000.0,
+        Arc::new(Lambertian {
+            albedo: pertext.clone(),
+        }),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point::new(0.0, 2.0, 0.0),
+        2.0,
+        Arc::new(Lambertian { albedo: pertext }),
+    )));
+
+    BVHNode::new(&mut world, 0.0, 0.1)
+}
+
+fn earth() -> BVHNode {
+    let earth_texture = Arc::new(ImageTexture::new("image_texture/earthmap.jpg"));
+    let earth_surface = Arc::new(Lambertian {
+        albedo: earth_texture,
+    });
+    let mut world = HittableList::new();
+    world.add(Arc::new(Sphere::new(
+        Point::new(0.0, 0.0, 0.0),
+        2.0,
+        earth_surface,
+    )));
+
+    BVHNode::new(&mut world, 0.0, 1.0)
 }
