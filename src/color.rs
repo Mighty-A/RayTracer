@@ -35,7 +35,7 @@ pub fn ray_color(r: &Ray, background: &Color, world: &dyn Hittable, depth: i32) 
     let mut rec = HitRecord::new(Arc::new(Lambertian::new(Color::new(0.0, 0.0, 0.0))));
 
     if depth <= 0 {
-        return Color::new(1.0, 1.0, 1.0);
+        return Color::new(0.0, 0.0, 0.0);
     }
 
     if !world.hit(r, 0.0001, INFINITY, &mut rec) {

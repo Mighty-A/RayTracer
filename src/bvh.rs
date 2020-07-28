@@ -7,6 +7,7 @@ use std::cmp::*;
 use std::sync::Arc;
 use std::vec::Vec;
 
+#[derive(Clone)]
 pub struct BVHNode {
     left: Arc<dyn Hittable>,
     right: Arc<dyn Hittable>,

@@ -5,7 +5,7 @@ use crate::texture::*;
 use crate::vec3::*;
 use std::sync::Arc;
 
-pub trait Material {
+pub trait Material: Send + Sync {
     fn scatter(
         &self,
         r_in: &Ray,

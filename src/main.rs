@@ -21,16 +21,26 @@ pub use color::{ray_color, write_color};
 pub use hittable::{HitRecord, Hittable, HittableList, MovingSphere, Sphere};
 pub use material::*;
 pub use ray::Ray;
-pub use rtweekend::{random_double, INFINITY, PI};
+pub use rtweekend::*;
+pub use std::sync::mpsc::channel;
+pub use std::thread;
 pub use texture::*;
+pub use threadpool::ThreadPool;
 pub use vec3::Color;
 pub use vec3::Point;
 pub use vec3::Vec3;
 
+pub struct ThreadTemp {
+    pub x: u32,
+    pub color: Vec<[u8; 3]>,
+}
+fn is_ci() -> bool {
+    option_env!("CI").unwrap_or_default() == "true"
+}
 fn main() {
     // Image
     const RATIO: f64 = 3.0 / 2.0;
-    const WIDTH: u32 = 1200;
+    const WIDTH: u32 = 300;
     const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
     const MAX_DEPTH: i32 = 50;
 
@@ -47,7 +57,7 @@ fn main() {
     let background;
     let mut samples_per_pixel = 100;
 
-    let scene = 4;
+    let scene = 3;
     match scene {
         1 => {
             world = random_scene();
@@ -73,10 +83,10 @@ fn main() {
         }
         4 => {
             world = light_demo();
-            lookfrom = Point::new(13.0, 5.0, 8.0);
+            lookfrom = Point::new(13.0, 5.0, 10.0);
             lookat = Point::new(0.0, 0.0, 0.0);
             dist_to_focus = 15.0;
-            aperture = 0.1;
+            aperture = 0.2;
             vfov = 45.0;
             background = Color::new(0.0, 0.0, 0.0);
             samples_per_pixel = 300;
@@ -107,20 +117,58 @@ fn main() {
 
     println!("width:{} height:{}", WIDTH, HEIGHT);
 
-    for x in 0..WIDTH {
-        for y in 0..HEIGHT {
-            let mut pixel_color = Color::new(0.0, 0.0, 0.0);
-            for _s in 0..samples_per_pixel {
-                let u = (x as f64 + random_double(0.0, 1.0)) / (WIDTH - 1) as f64;
-                let v = ((HEIGHT - y) as f64 + random_double(0.0, 1.0)) / (HEIGHT - 1) as f64;
-                let r = cam.get_ray(u, v);
-                pixel_color += ray_color(&r, &background, &world, MAX_DEPTH);
+    let thread_num = if is_ci() { 2 } else { 8 };
+    let x_per_thread = WIDTH / thread_num;
+
+    let (tx, rx) = channel();
+
+    for i in 0..thread_num {
+        let start = i * x_per_thread;
+        let end = ((i + 1) * x_per_thread).min(WIDTH);
+
+        let _tx = tx.clone();
+        let _world = world.clone();
+        let _cam = cam.clone();
+        thread::spawn(move || {
+            for x in start..end {
+                let mut temp = ThreadTemp { x, color: vec![] };
+                for y in 0..HEIGHT {
+                    let mut pixel_color = Color::new(0.0, 0.0, 0.0);
+                    for _s in 0..samples_per_pixel {
+                        let u = (x as f64 + random_double(0.0, 1.0)) / (WIDTH - 1) as f64;
+                        let v =
+                            ((HEIGHT - y) as f64 + random_double(0.0, 1.0)) / (HEIGHT - 1) as f64;
+                        let r = _cam.get_ray(u, v);
+                        pixel_color += ray_color(&r, &background, &_world, MAX_DEPTH);
+                    }
+                    let mut r = pixel_color.x;
+                    let mut g = pixel_color.y;
+                    let mut b = pixel_color.z;
+
+                    let scale = 1.0 / samples_per_pixel as f64;
+                    r = (scale * r).sqrt();
+                    g = (scale * g).sqrt();
+                    b = (scale * b).sqrt();
+
+                    temp.color.push([
+                        (clamp(r, 0.0, 0.999) * 255.0) as u8,
+                        (clamp(g, 0.0, 0.999) * 255.0) as u8,
+                        (clamp(b, 0.0, 0.999) * 255.0) as u8,
+                    ]);
+                }
+                _tx.send(temp).expect("failed to send");
             }
-            write_color(&pixel_color, &mut img, x, y, samples_per_pixel);
+        });
+    }
+    for receive in rx.iter().take(300) {
+        let x = receive.x;
+        //print!("{}\n", x);
+        for y in 0..HEIGHT {
+            let pixel = img.get_pixel_mut(x, y);
+            *pixel = image::Rgb(receive.color[y as usize]);
         }
         bar.inc(1);
     }
-
     img.save("output/test.png").unwrap();
     bar.finish();
 }
@@ -245,9 +293,9 @@ pub fn light_demo() -> BVHNode {
             let choose_mat = random_double(0.0, 1.0);
             let r = random_double(0.1, 0.4);
             let center = Point::new(
-                a as f64 / 1.2 + 0.25 * random_double(0.0, 1.0),
+                a as f64 / 1.5 + 0.25 * random_double(0.0, 1.0),
                 r,
-                b as f64 / 1.2 + 0.25 * random_double(0.0, 1.0),
+                b as f64 / 1.5 + 0.25 * random_double(0.0, 1.0),
             );
 
             if (center - Point::new(0.0, 0.0, 0.0)).length() > 2.0
@@ -284,22 +332,22 @@ pub fn light_demo() -> BVHNode {
     ))));
 
     world.add(Arc::new(Sphere::new(
-        Point::new(0.0, 1.3, 0.0),
-        1.3,
+        Point::new(0.0, 0.9, 0.0),
+        0.9,
         difflight,
     )));
 
     let material1 = Arc::new(Dielectric::new(1.5));
     let material3 = Arc::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
     world.add(Arc::new(Sphere::new(
-        Point::new(-3.0, 1.0, 0.0),
-        1.0,
+        Point::new(-3.0, 0.65, 0.0),
+        0.65,
         material3,
     )));
 
     world.add(Arc::new(Sphere::new(
-        Point::new(3.0, 1.0, 0.0),
-        1.0,
+        Point::new(3.0, 0.65, 0.0),
+        0.65,
         material1,
     )));
     BVHNode::new(&mut world, 0.0, 0.1)

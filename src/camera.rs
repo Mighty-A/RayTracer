@@ -2,6 +2,7 @@ use crate::ray::Ray;
 use crate::rtweekend::{degrees_to_radians, random_double};
 use crate::vec3::{random_in_unit_disk, Point, Vec3};
 
+#[derive(Clone)]
 pub struct Camera {
     orig: Point,
     lower_left_corner: Point,
