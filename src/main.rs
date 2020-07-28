@@ -55,7 +55,7 @@ fn main() {
     let mut aperture = 0.0;
     let mut vfov = 40.0;
     let background;
-    let mut samples_per_pixel = 100;
+    let mut samples_per_pixel = 16;
 
     let scene = 3;
     match scene {
@@ -118,13 +118,12 @@ fn main() {
     println!("width:{} height:{}", WIDTH, HEIGHT);
 
     let thread_num = if is_ci() { 2 } else { 8 };
-    let x_per_thread = WIDTH / thread_num;
 
     let (tx, rx) = channel();
 
     for i in 0..thread_num {
-        let start = i * x_per_thread;
-        let end = ((i + 1) * x_per_thread).min(WIDTH);
+        let start = i * WIDTH / thread_num;
+        let end = (i + 1) * WIDTH / thread_num;
 
         let _tx = tx.clone();
         let _world = world.clone();
@@ -160,7 +159,7 @@ fn main() {
             }
         });
     }
-    for receive in rx.iter().take(300) {
+    for receive in rx.iter().take(WIDTH as usize) {
         let x = receive.x;
         //print!("{}\n", x);
         for y in 0..HEIGHT {
