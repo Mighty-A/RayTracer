@@ -31,29 +31,33 @@ pub fn write_color(
     ]);
 }
 
-pub fn ray_color(r: &Ray, world: &dyn Hittable, depth: i32) -> Color {
+pub fn ray_color(r: &Ray, background: &Color, world: &dyn Hittable, depth: i32) -> Color {
     let mut rec = HitRecord::new(Arc::new(Lambertian::new(Color::new(0.0, 0.0, 0.0))));
 
     if depth <= 0 {
         return Color::new(1.0, 1.0, 1.0);
     }
 
-    if world.hit(r, 0.0001, INFINITY, &mut rec) {
-        let mut scattered = Ray {
-            orig: Vec3::ones(),
-            dire: Vec3::ones(),
-            tm: 0.0,
-        };
-        let mut attenuation = Color::new(0.0, 0.0, 0.0);
-        if rec
-            .mat_ptr
-            .scatter(&r, &rec, &mut attenuation, &mut scattered)
-        {
-            return Vec3::elemul(attenuation, ray_color(&scattered, world, depth - 1));
-        }
-        return Color::new(0.0, 0.0, 0.0);
+    if !world.hit(r, 0.0001, INFINITY, &mut rec) {
+        return *background;
     }
-    let unit_direction = r.dire.unit();
-    let t = 0.5 * (unit_direction.y + 1.0);
-    Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
+    let mut scattered = Ray {
+        orig: Vec3::ones(),
+        dire: Vec3::ones(),
+        tm: 0.0,
+    };
+    let mut attenuation = Color::new(0.0, 0.0, 0.0);
+    let emitted = rec.mat_ptr.emitted(rec.u, rec.v, &rec.p);
+
+    if !rec
+        .mat_ptr
+        .scatter(&r, &rec, &mut attenuation, &mut scattered)
+    {
+        return emitted;
+    }
+    emitted
+        + Vec3::elemul(
+            attenuation,
+            ray_color(&scattered, background, world, depth - 1),
+        )
 }
