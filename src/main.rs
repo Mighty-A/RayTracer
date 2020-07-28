@@ -40,7 +40,7 @@ fn is_ci() -> bool {
 fn main() {
     // Image
     const RATIO: f64 = 3.0 / 2.0;
-    const WIDTH: u32 = 300;
+    const WIDTH: u32 = 1200;
     const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
     const MAX_DEPTH: i32 = 50;
 
@@ -57,7 +57,7 @@ fn main() {
     let background;
     let mut samples_per_pixel = 16;
 
-    let scene = 3;
+    let scene = 4;
     match scene {
         1 => {
             world = random_scene();
@@ -86,8 +86,8 @@ fn main() {
             lookfrom = Point::new(13.0, 5.0, 10.0);
             lookat = Point::new(0.0, 0.0, 0.0);
             dist_to_focus = 15.0;
-            aperture = 0.2;
-            vfov = 45.0;
+            aperture = 0.4;
+            vfov = 40.0;
             background = Color::new(0.0, 0.0, 0.0);
             samples_per_pixel = 300;
         }
@@ -287,8 +287,8 @@ pub fn light_demo() -> BVHNode {
         ground_material,
     )));
 
-    for a in -13..13 {
-        for b in -13..13 {
+    for a in -15..15 {
+        for b in -15..15 {
             let choose_mat = random_double(0.0, 1.0);
             let r = random_double(0.1, 0.4);
             let center = Point::new(
@@ -296,31 +296,45 @@ pub fn light_demo() -> BVHNode {
                 r,
                 b as f64 / 1.5 + 0.25 * random_double(0.0, 1.0),
             );
-
-            if (center - Point::new(0.0, 0.0, 0.0)).length() > 2.0
-                && (center - Point::new(3.0, 0.0, 0.0)).length() > 1.3
-                && (center - Point::new(-3.0, 0.0, 0.0)).length() > 1.3
-            {
+            
+            if (center - Point::new(0.0, 0.0, 0.0)).length() > 2.0 && (center - Point::new(2.0, 0.0, 0.0)).length() > 1.3 && (center - Point::new(-2.0, 0.0, 0.0)).length() > 1.3 {
+                
                 if choose_mat < 0.2 {
                     // diffuse
                     let albedo = Vec3::elemul(Color::random(0.0, 1.0), Color::random(0.0, 1.0));
                     let sphere_material = Arc::new(Lambertian::new(albedo));
-                    world.add(Arc::new(Sphere::new(center, r, sphere_material)));
+                    world.add(Arc::new(Sphere::new(
+                        center,
+                        r,
+                        sphere_material,
+                    )));
                 } else if choose_mat < 0.7 {
                     let difflight = Arc::new(DiffuseLight::new(Arc::new(SolidColor::new(
                         Color::random(0.0, 1.0),
                     ))));
-                    world.add(Arc::new(Sphere::new(center, r, difflight)))
-                } else if choose_mat < 0.85 {
+                    world.add(Arc::new(Sphere::new(
+                        center,
+                        r,
+                        difflight,
+                    )))
+                } else if choose_mat < 0.85{
                     // metal
                     let albedo = Color::random(0.5, 1.0);
                     let fuzz = random_double(0.0, 0.5);
                     let sphere_material = Arc::new(Metal::new(&albedo, fuzz));
-                    world.add(Arc::new(Sphere::new(center, r, sphere_material)));
+                    world.add(Arc::new(Sphere::new(
+                        center,
+                        r,
+                        sphere_material,
+                    )));
                 } else {
                     // glass
                     let sphere_material = Arc::new(Dielectric::new(1.5));
-                    world.add(Arc::new(Sphere::new(center, r, sphere_material)));
+                    world.add(Arc::new(Sphere::new(
+                        center,
+                        r,
+                        sphere_material,
+                    )));
                 }
             }
         }
@@ -339,13 +353,14 @@ pub fn light_demo() -> BVHNode {
     let material1 = Arc::new(Dielectric::new(1.5));
     let material3 = Arc::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
     world.add(Arc::new(Sphere::new(
-        Point::new(-3.0, 0.65, 0.0),
+        Point::new(-2.0, 0.65, 0.0),
         0.65,
         material3,
     )));
 
+
     world.add(Arc::new(Sphere::new(
-        Point::new(3.0, 0.65, 0.0),
+        Point::new(2.0, 0.65, 0.0),
         0.65,
         material1,
     )));
