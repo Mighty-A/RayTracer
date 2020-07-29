@@ -20,6 +20,7 @@ impl Perlin {
     }
     fn perlin_generate_perm() -> [i32; POINT_COUNT] {
         let mut tmp = [0 as i32; POINT_COUNT];
+        #[allow(clippy::needless_range_loop)]
         for i in 0..POINT_COUNT {
             tmp[i] = i as i32;
         }
@@ -46,7 +47,7 @@ impl Perlin {
         let uu = u * u * (3.0 - 2.0 * u);
         let vv = v * v * (3.0 - 2.0 * v);
         let ww = w * w * (3.0 - 2.0 * w);
-
+        #[allow(clippy::needless_range_loop)]
         for i in 0..2 {
             for j in 0..2 {
                 for k in 0..2 {
@@ -63,26 +64,28 @@ impl Perlin {
 
     //#[allow(clippy::many_single_char_names)]
     pub fn noise(&self, p: &Point) -> f64 {
-        let u = p.x - p.x.floor();
-        let v = p.y - p.y.floor();
-        let w = p.z - p.z.floor();
+        let uu = p.x - p.x.floor();
+        let vv = p.y - p.y.floor();
+        let ww = p.z - p.z.floor();
 
         let i = p.x.floor() as i32;
         let j = p.y.floor() as i32;
         let k = p.z.floor() as i32;
-        let mut c = [[[Vec3::zero(); 2]; 2]; 2];
+        let mut c_array = [[[Vec3::zero(); 2]; 2]; 2];
 
+        #[allow(clippy::needless_range_loop)]
         for di in 0..2 {
             for dj in 0..2 {
                 for dk in 0..2 {
-                    c[di][dj][dk] = self.ran_vec[(self.perm_x[((i + di as i32) & 255) as usize]
+                    c_array[di][dj][dk] = self.ran_vec[(self.perm_x
+                        [((i + di as i32) & 255) as usize]
                         ^ self.perm_y[((j + dj as i32) & 255) as usize]
                         ^ self.perm_z[((k + dk as i32) & 255) as usize])
                         as usize];
                 }
             }
         }
-        Self::perlin_interp(&c, u, v, w)
+        Self::perlin_interp(&c_array, uu, vv, ww)
     }
 
     pub fn turb(&self, p: &Point, depth: i32) -> f64 {
@@ -97,5 +100,11 @@ impl Perlin {
         }
 
         accum.abs()
+    }
+}
+
+impl Default for Perlin {
+    fn default() -> Self {
+        Self::new()
     }
 }

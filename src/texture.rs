@@ -84,7 +84,7 @@ impl ImageTexture {
         Self {
             width: img.width(),
             height: img.height(),
-            img: img,
+            img,
         }
     }
 }

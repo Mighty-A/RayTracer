@@ -1,5 +1,6 @@
 mod aabb;
 mod aarect;
+mod box6;
 mod bvh;
 mod camera;
 mod color;
@@ -16,6 +17,7 @@ use indicatif::ProgressBar;
 use std::sync::Arc;
 
 pub use aarect::*;
+pub use box6::*;
 pub use bvh::*;
 pub use camera::*;
 pub use color::{ray_color, write_color};
@@ -443,7 +445,25 @@ fn cornell_box() -> BVHNode {
         555.0,
         white.clone(),
     )));
-    world.add(Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white)));
+    world.add(Arc::new(XYRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    world.add(Arc::new(Box6::new(
+        &Point::new(130.0, 0.0, 65.0),
+        &Point::new(295.0, 165.0, 230.0),
+        white.clone(),
+    )));
+    world.add(Arc::new(Box6::new(
+        &Point::new(265.0, 0.0, 295.0),
+        &Point::new(430.0, 330.0, 460.0),
+        white,
+    )));
 
     BVHNode::new(&mut world, 0.0, 1.0)
 }
