@@ -155,6 +155,12 @@ impl DiffuseLight {
     pub fn new(a: Arc<dyn Texture>) -> Self {
         Self { emit: a }
     }
+
+    pub fn new_from_color(c: Color) -> Self {
+        Self {
+            emit: Arc::new(SolidColor::new(c)),
+        }
+    }
 }
 
 impl Material for DiffuseLight {

@@ -60,7 +60,7 @@ fn main() {
     let background;
     let mut samples_per_pixel = 64;
 
-    let scene = 7;
+    let scene = 9;
     match scene {
         1 => {
             world = random_scene();
@@ -126,12 +126,21 @@ fn main() {
             vfov = 40.0;
             background = Color::new(0.0, 0.0, 0.0);
         }
+        9 => {
+            world = final_scene();
+            aspect_ratio = 1.0;
+            samples_per_pixel = 1000;
+            background = Color::new(0.0, 0.0, 0.0);
+            lookfrom = Point::new(478.0, 278.0, -600.0);
+            lookat = Point::new(278., 278., 0.);
+            vfov = 40.0;
+        }
         _ => {
             background = Color::new(0.0, 0.0, 0.0);
         }
     };
 
-    let width: u32 = 600;
+    let width: u32 = 800;
     let height: u32 = (width as f64 / aspect_ratio) as u32;
 
     let cam = Camera::new(
@@ -549,6 +558,120 @@ fn cornell_smoke() -> BVHNode {
         box2,
         0.01,
         Color::new(1.0, 1.0, 1.0),
+    )));
+
+    BVHNode::new(&mut world, 0.0, 1.0)
+}
+
+fn final_scene() -> BVHNode {
+    let mut boxes1 = HittableList::new();
+    let ground = Arc::new(Lambertian::new(Color::new(0.48, 0.83, 0.53)));
+
+    let boxes_per_side = 20;
+    for i in 0..boxes_per_side {
+        for j in 0..boxes_per_side {
+            let w = 100.0;
+            let x0 = -1000.0 + i as f64 * w;
+            let z0 = -1000.0 + j as f64 * w;
+            let y0 = 0.0;
+            let x1 = x0 + w;
+            let y1 = random_double(1.0, 101.0);
+            let z1 = z0 + w;
+
+            boxes1.add(Arc::new(Box6::new(
+                &Point::new(x0, y0, z0),
+                &Point::new(x1, y1, z1),
+                ground.clone(),
+            )));
+        }
+    }
+
+    let mut world = HittableList::new();
+
+    world.add(Arc::new(BVHNode::new(&mut boxes1, 0.0, 1.0)));
+
+    let light = Arc::new(DiffuseLight::new_from_color(Color::new(7.0, 7.0, 7.0)));
+    world.add(Arc::new(XZRect::new(
+        123.0, 423.0, 147.0, 412.0, 554.0, light,
+    )));
+
+    let center1 = Point::new(400.0, 400.0, 200.0);
+    let center2 = center1 + Vec3::new(30.0, 0.0, 0.0);
+    let moving_sphere_material = Arc::new(Lambertian::new(Color::new(0.7, 0.3, 0.1)));
+    world.add(Arc::new(MovingSphere::new(
+        center1,
+        center2,
+        0.0,
+        1.0,
+        50.0,
+        moving_sphere_material,
+    )));
+
+    world.add(Arc::new(Sphere::new(
+        Point::new(260.0, 150.0, 45.0),
+        50.0,
+        Arc::new(Dielectric::new(1.5)),
+    )));
+    world.add(Arc::new(Sphere::new(
+        Point::new(0.0, 150.0, 145.0),
+        50.0,
+        Arc::new(Metal::new(&Color::new(0.8, 0.8, 0.9), 10.0)),
+    )));
+
+    let boundary = Arc::new(Sphere::new(
+        Point::new(360.0, 150.0, 145.0),
+        70.0,
+        Arc::new(Dielectric::new(1.5)),
+    ));
+    world.add(boundary.clone());
+    world.add(Arc::new(ConstantMedium::new_from_color(
+        boundary,
+        0.02,
+        Color::new(0.2, 0.4, 0.9),
+    )));
+    let boundary1 = Arc::new(Sphere::new(
+        Point::new(0.0, 0.0, 0.0),
+        5000.0,
+        Arc::new(Dielectric::new(1.5)),
+    ));
+    world.add(Arc::new(ConstantMedium::new_from_color(
+        boundary1,
+        0.0001,
+        Color::new(1.0, 1.0, 1.0),
+    )));
+
+    let emat = Arc::new(Lambertian {
+        albedo: Arc::new(ImageTexture::new("image_texture/earthmap.jpg")),
+    });
+    world.add(Arc::new(Sphere::new(
+        Point::new(400.0, 200.0, 400.0),
+        100.0,
+        emat,
+    )));
+    let pertext = Arc::new(NoiseTexture::new(0.1));
+    world.add(Arc::new(Sphere::new(
+        Point::new(220.0, 280.0, 300.0),
+        80.0,
+        Arc::new(Lambertian { albedo: pertext }),
+    )));
+
+    let mut boxes2 = HittableList::new();
+    let white = Arc::new(Lambertian::new(Color::new(0.73, 0.73, 0.73)));
+    let ns = 100;
+    for _j in 0..ns {
+        boxes2.add(Arc::new(Sphere::new(
+            Point::random(0.0, 165.0),
+            10.0,
+            white.clone(),
+        )));
+    }
+
+    world.add(Arc::new(Translate::new(
+        Arc::new(RotateY::new(
+            Arc::new(BVHNode::new(&mut boxes2, 0.0, 1.0)),
+            15.0,
+        )),
+        &Vec3::new(-100.0, 270.0, 395.0),
     )));
 
     BVHNode::new(&mut world, 0.0, 1.0)
