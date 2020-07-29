@@ -40,15 +40,13 @@ fn is_ci() -> bool {
 }
 fn main() {
     // Image
-    const RATIO: f64 = 3.0 / 2.0;
-    const WIDTH: u32 = 1200;
-    const HEIGHT: u32 = (WIDTH as f64 / RATIO) as u32;
     const MAX_DEPTH: i32 = 50;
 
     // World
     let mut world = random_scene();
 
     // Camera
+    let mut aspect_ratio = 3.0 / 2.0;
     let mut lookfrom = Point::new(13.0, 2.0, 3.0);
     let mut lookat = Point::new(0.0, 0.0, 0.0);
     let vup = Vec3::new(0.0, 1.0, 0.0);
@@ -58,7 +56,7 @@ fn main() {
     let background;
     let mut samples_per_pixel = 64;
 
-    let scene = 6;
+    let scene = 7;
     match scene {
         1 => {
             world = random_scene();
@@ -106,17 +104,30 @@ fn main() {
             vfov = 20.0;
             background = Color::new(0.5, 0.8, 0.8);
         }
+        7 => {
+            world = cornell_box();
+            aspect_ratio = 1.0;
+            samples_per_pixel = 200;
+            background = Color::new(0.0, 0.0, 0.0);
+            lookfrom = Point::new(278.0, 278.0, -800.0);
+            lookat = Point::new(278.0, 278.0, 0.0);
+            vfov = 40.0;
+        }
         _ => {
             background = Color::new(0.0, 0.0, 0.0);
         }
     };
+
+    let width: u32 = 600;
+    let height: u32 = (width as f64 / aspect_ratio) as u32;
+
     let cam = Camera::new(
         lookfrom,
         lookat,
         vup,
         CameraInfo {
             vfov,
-            aspect_ratio: RATIO,
+            aspect_ratio,
             aperture,
             focus_dist: dist_to_focus,
         },
@@ -125,20 +136,20 @@ fn main() {
     );
 
     // Render
-    let mut img: RgbImage = ImageBuffer::new(WIDTH, HEIGHT);
-    let bar = ProgressBar::new(WIDTH as u64);
+    let mut img: RgbImage = ImageBuffer::new(width, height);
+    let bar = ProgressBar::new(width as u64);
 
-    //let pixel_color: [[Color; WIDTH as usize]; HEIGHT as usize] = [[Color::new(0.0, 0.0, 0.0); WIDTH as usize]; HEIGHT as usize];
+    //let pixel_color: [[Color; width as usize]; height as usize] = [[Color::new(0.0, 0.0, 0.0); width as usize]; height as usize];
 
-    println!("width:{} height:{}", WIDTH, HEIGHT);
+    println!("width:{} height:{}", width, height);
 
     let thread_num = if is_ci() { 2 } else { 8 };
 
     let (tx, rx) = channel();
 
     for i in 0..thread_num {
-        let start = i * WIDTH / thread_num;
-        let end = (i + 1) * WIDTH / thread_num;
+        let start = i * width / thread_num;
+        let end = (i + 1) * width / thread_num;
 
         let _tx = tx.clone();
         let _world = world.clone();
@@ -146,12 +157,12 @@ fn main() {
         thread::spawn(move || {
             for x in start..end {
                 let mut temp = ThreadTemp { x, color: vec![] };
-                for y in 0..HEIGHT {
+                for y in 0..height {
                     let mut pixel_color = Color::new(0.0, 0.0, 0.0);
                     for _s in 0..samples_per_pixel {
-                        let u = (x as f64 + random_double(0.0, 1.0)) / (WIDTH - 1) as f64;
+                        let u = (x as f64 + random_double(0.0, 1.0)) / (width - 1) as f64;
                         let v =
-                            ((HEIGHT - y) as f64 + random_double(0.0, 1.0)) / (HEIGHT - 1) as f64;
+                            ((height - y) as f64 + random_double(0.0, 1.0)) / (height - 1) as f64;
                         let r = _cam.get_ray(u, v);
                         pixel_color += ray_color(&r, &background, &_world, MAX_DEPTH);
                     }
@@ -174,10 +185,10 @@ fn main() {
             }
         });
     }
-    for receive in rx.iter().take(WIDTH as usize) {
+    for receive in rx.iter().take(width as usize) {
         let x = receive.x;
         //print!("{}\n", x);
-        for y in 0..HEIGHT {
+        for y in 0..height {
             let pixel = img.get_pixel_mut(x, y);
             *pixel = image::Rgb(receive.color[y as usize]);
         }
@@ -398,6 +409,41 @@ fn earth() -> BVHNode {
         2.0,
         earth_surface,
     )));
+
+    BVHNode::new(&mut world, 0.0, 1.0)
+}
+
+fn cornell_box() -> BVHNode {
+    let mut world = HittableList::new();
+    let red = Arc::new(Lambertian::new(Color::new(0.65, 0.05, 0.05)));
+    let white = Arc::new(Lambertian::new(Color::new(0.73, 0.73, 0.73)));
+    let green = Arc::new(Lambertian::new(Color::new(0.12, 0.45, 0.15)));
+    let light = Arc::new(DiffuseLight::new(Arc::new(SolidColor::new(Color::new(
+        15.0, 15.0, 15.0,
+    )))));
+
+    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 555.0, green)));
+    world.add(Arc::new(YZRect::new(0.0, 555.0, 0.0, 555.0, 0.0, red)));
+    world.add(Arc::new(XZRect::new(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    world.add(Arc::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    world.add(Arc::new(XZRect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    world.add(Arc::new(XYRect::new(0.0, 555.0, 0.0, 555.0, 555.0, white)));
 
     BVHNode::new(&mut world, 0.0, 1.0)
 }

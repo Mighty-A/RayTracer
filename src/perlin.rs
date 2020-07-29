@@ -29,8 +29,8 @@ impl Perlin {
     }
     pub fn new() -> Self {
         let mut tmp = [Vec3::zero(); POINT_COUNT];
-        for i in 0..POINT_COUNT {
-            tmp[i] = Vec3::random(-1.0, 1.0).unit();
+        for i in tmp.iter_mut() {
+            *i = Vec3::random(-1.0, 1.0).unit();
         }
         Self {
             ran_vec: tmp,
