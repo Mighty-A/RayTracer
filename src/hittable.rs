@@ -258,3 +258,135 @@ impl Hittable for MovingSphere {
         true
     }
 }
+
+pub struct Translate {
+    ptr: Arc<dyn Hittable>,
+    offset: Vec3,
+}
+
+impl Translate {
+    pub fn new(p: Arc<dyn Hittable>, displacement: &Vec3) -> Self {
+        Self {
+            ptr: p,
+            offset: *displacement,
+        }
+    }
+}
+
+impl Hittable for Translate {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let moved_r = Ray {
+            orig: r.orig - self.offset,
+            dire: r.dire,
+            tm: r.tm,
+        };
+        if !self.ptr.hit(&moved_r, t_min, t_max, rec) {
+            return false;
+        }
+
+        rec.p += self.offset;
+        let normal = rec.normal;
+        rec.set_face_normal(&moved_r, &normal);
+
+        true
+    }
+
+    fn bounding_box(&self, t0: f64, t1: f64, output_box: &mut AABB) -> bool {
+        if !self.ptr.bounding_box(t0, t1, output_box) {
+            return false;
+        }
+        *output_box = AABB::new(
+            &(output_box._min + self.offset),
+            &(output_box._max + self.offset),
+        );
+        true
+    }
+}
+
+pub struct RotateY {
+    pub ptr: Arc<dyn Hittable>,
+    pub sin_theta: f64,
+    pub cos_theta: f64,
+    pub hasbox: bool,
+    pub bbox: AABB,
+}
+
+impl RotateY {
+    pub fn new(p: Arc<dyn Hittable>, angle: f64) -> Self {
+        let radians = degrees_to_radians(angle);
+        let sin_theta = radians.sin();
+        let cos_theta = radians.cos();
+        let mut min = Point::new(INFINITY, INFINITY, INFINITY);
+        let mut max = Point::new(-INFINITY, -INFINITY, -INFINITY);
+        let mut bbox = AABB::new(&Point::ones(), &Point::ones());
+        let hasbox = p.bounding_box(0.0, 1.0, &mut bbox);
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    let x = i as f64 * bbox._max.x + (1 - i) as f64 * bbox._min.x;
+                    let y = j as f64 * bbox._max.y + (1 - j) as f64 * bbox._min.y;
+                    let z = k as f64 * bbox._max.z + (1 - k) as f64 * bbox._min.z;
+
+                    let newx = cos_theta * x + sin_theta * z;
+                    let newz = -sin_theta * x + cos_theta * z;
+
+                    let tester = Vec3::new(newx, y, newz);
+
+                    for c in 0..3 {
+                        min[c] = min[c].min(tester[c]);
+                        max[c] = max[c].max(tester[c]);
+                    }
+                }
+            }
+        }
+        let bbox = AABB::new(&min, &max);
+        Self {
+            ptr: p,
+            sin_theta,
+            cos_theta,
+            hasbox,
+            bbox,
+        }
+    }
+}
+
+impl Hittable for RotateY {
+    fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        let mut orig = r.orig;
+        let mut dire = r.dire;
+
+        orig[0] = self.cos_theta * r.orig[0] - self.sin_theta * r.orig[2];
+        orig[2] = self.sin_theta * r.orig[0] + self.cos_theta * r.orig[2];
+
+        dire[0] = self.cos_theta * r.dire[0] - self.sin_theta * r.dire[2];
+        dire[2] = self.sin_theta * r.dire[0] + self.cos_theta * r.dire[2];
+
+        let rotated_r = Ray {
+            orig,
+            dire,
+            tm: r.tm,
+        };
+
+        if !self.ptr.hit(&rotated_r, t_min, t_max, rec) {
+            return false;
+        }
+
+        let mut p = rec.p;
+        let mut normal = rec.normal;
+
+        p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];
+        p[2] = -self.sin_theta * rec.p[0] + self.cos_theta * rec.p[2];
+
+        normal[0] = self.cos_theta * rec.normal[0] + self.sin_theta * rec.normal[2];
+        normal[2] = -self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
+
+        rec.p = p;
+        rec.set_face_normal(&rotated_r, &normal);
+
+        true
+    }
+    fn bounding_box(&self, _t0: f64, _t1: f64, output_box: &mut AABB) -> bool {
+        *output_box = self.bbox.clone();
+        self.hasbox
+    }
+}
