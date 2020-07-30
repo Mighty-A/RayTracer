@@ -11,6 +11,7 @@ mod perlin;
 mod ray;
 mod rtweekend;
 mod texture;
+mod triangle;
 #[allow(clippy::float_cmp)]
 mod vec3;
 use image::{ImageBuffer, RgbImage};
@@ -31,6 +32,7 @@ pub use std::sync::mpsc::channel;
 pub use std::thread;
 pub use texture::*;
 pub use threadpool::ThreadPool;
+pub use triangle::*;
 pub use vec3::Color;
 pub use vec3::Point;
 pub use vec3::Vec3;
@@ -60,7 +62,7 @@ fn main() {
     let background;
     let mut samples_per_pixel = 64;
 
-    let scene = 9;
+    let scene = 10;
     match scene {
         1 => {
             world = random_scene();
@@ -135,12 +137,21 @@ fn main() {
             lookat = Point::new(278., 278., 0.);
             vfov = 40.0;
         }
+        10 => {
+            world = try_triangle();
+            aspect_ratio = 1.0;
+            samples_per_pixel = 256;
+            background = Color::new(0.52, 0.80, 0.92);
+            lookfrom = Point::new(3., 2., -7.);
+            lookat = Point::new(0., 0., 0.);
+            vfov = 40.0;
+        }
         _ => {
             background = Color::new(0.0, 0.0, 0.0);
         }
     };
 
-    let width: u32 = 800;
+    let width: u32 = 1000;
     let height: u32 = (width as f64 / aspect_ratio) as u32;
 
     let cam = Camera::new(
@@ -165,7 +176,7 @@ fn main() {
 
     println!("width:{} height:{}", width, height);
 
-    let thread_num = if is_ci() { 2 } else { 8 };
+    let thread_num = if is_ci() { 2 } else { 1 };
 
     let (tx, rx) = channel();
 
@@ -675,4 +686,38 @@ fn final_scene() -> BVHNode {
     )));
 
     BVHNode::new(&mut world, 0.0, 1.0)
+}
+
+fn try_triangle() -> BVHNode {
+    let mut world = HittableList::new();
+    let point1 = Point::new(2., 0., 0.);
+    let point2 = Point::new(-2., 0., 0.);
+    let point3 = Point::new(0., 2., 0.);
+    //let point4 = Point::new(0., 0., -2.);
+
+    let material = Arc::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
+    world.add(Arc::new(Triangle::new(point1, point2, point3, material)));
+    //world.add(Arc::new(Triangle::new(point1, point2, point4, material.clone())));
+    //world.add(Arc::new(Triangle::new(point1, point4, point3, material.clone())));
+    //world.add(Arc::new(Triangle::new(point4, point2, point3, material.clone())));
+
+    let albedo = Vec3::elemul(Color::random(0.0, 1.0), Color::random(0.0, 1.0));
+    let sphere_material = Arc::new(Lambertian::new(albedo));
+    world.add(Arc::new(Sphere::new(
+        Point::new(0., 0.5, -3.),
+        0.5,
+        sphere_material,
+    )));
+
+    let checker = Arc::new(CheckerTexture::new(
+        Color::new(0.2, 0.3, 0.1),
+        Color::new(0.9, 0.9, 0.9),
+    ));
+    let ground_material = Arc::new(Lambertian { albedo: checker });
+    world.add(Arc::new(Sphere::new(
+        Point::new(0.0, -1000.0, 0.0),
+        1000.0,
+        ground_material,
+    )));
+    BVHNode::new(&mut world, 0., 1.)
 }
