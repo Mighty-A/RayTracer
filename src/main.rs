@@ -55,14 +55,14 @@ fn main() {
     let mut aspect_ratio = 3.0 / 2.0;
     let mut lookfrom = Point::new(13.0, 2.0, 3.0);
     let mut lookat = Point::new(0.0, 0.0, 0.0);
-    let vup = Vec3::new(0.0, 1.0, 0.0);
+    let mut vup = Vec3::new(0.0, 1.0, 0.0);
     let mut dist_to_focus = 10.0;
     let mut aperture = 0.0;
     let mut vfov = 40.0;
     let background;
     let mut samples_per_pixel = 64;
 
-    let scene = 10;
+    let scene = 11;
     match scene {
         1 => {
             world = random_scene();
@@ -146,12 +146,22 @@ fn main() {
             lookat = Point::new(0., 0., 0.);
             vfov = 40.0;
         }
+        11 => {
+            world = kaleidoscope();
+            aspect_ratio = 1.0;
+            samples_per_pixel = 256;
+            background = Color::new(0.52, 0.80, 0.92);
+            lookfrom = Point::new(1.5, -2.4, -0.866);
+            vup = Vec3::new(0., 0., -1.);
+            lookat = Point::new(1.5, 0., -0.866);
+            vfov = 70.0;
+        }
         _ => {
             background = Color::new(0.0, 0.0, 0.0);
         }
     };
 
-    let width: u32 = 1000;
+    let width: u32 = 800;
     let height: u32 = (width as f64 / aspect_ratio) as u32;
 
     let cam = Camera::new(
@@ -176,7 +186,7 @@ fn main() {
 
     println!("width:{} height:{}", width, height);
 
-    let thread_num = if is_ci() { 2 } else { 1 };
+    let thread_num = if is_ci() { 2 } else { 8 };
 
     let (tx, rx) = channel();
 
@@ -692,14 +702,19 @@ fn try_triangle() -> BVHNode {
     let mut world = HittableList::new();
     let point1 = Point::new(2., 0., 0.);
     let point2 = Point::new(-2., 0., 0.);
-    let point3 = Point::new(0., 2., 0.);
-    //let point4 = Point::new(0., 0., -2.);
+    let point3 = Point::new(1., 2., 0.);
+    let point4 = Point::new(-2., 4., -1.);
 
-    let material = Arc::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.0));
-    world.add(Arc::new(Triangle::new(point1, point2, point3, material)));
+    let material = Arc::new(Metal::new(&Color::new(0.7, 0.6, 0.5), 0.3));
+    world.add(Arc::new(Triangle::new(
+        point1,
+        point2,
+        point3,
+        material.clone(),
+    )));
     //world.add(Arc::new(Triangle::new(point1, point2, point4, material.clone())));
     //world.add(Arc::new(Triangle::new(point1, point4, point3, material.clone())));
-    //world.add(Arc::new(Triangle::new(point4, point2, point3, material.clone())));
+    world.add(Arc::new(Triangle::new(point4, point2, point3, material)));
 
     let albedo = Vec3::elemul(Color::random(0.0, 1.0), Color::random(0.0, 1.0));
     let sphere_material = Arc::new(Lambertian::new(albedo));
@@ -718,6 +733,33 @@ fn try_triangle() -> BVHNode {
         Point::new(0.0, -1000.0, 0.0),
         1000.0,
         ground_material,
+    )));
+    BVHNode::new(&mut world, 0., 1.)
+}
+
+fn kaleidoscope() -> BVHNode {
+    let mut world = HittableList::new();
+    let metal_material = Arc::new(Metal::new(&Color::new(0.8, 0.8, 0.8), 0.01));
+    let edge = Arc::new(Box6::new(
+        &Point::new(0., 0., 0.),
+        &Point::new(3.0, 20., 0.1),
+        metal_material,
+    ));
+    world.add(edge.clone());
+    world.add(Arc::new(Translate::new(
+        Arc::new(RotateY::new(edge.clone(), 60.)),
+        &Vec3::new(0., 0., 0.),
+    )));
+    world.add(Arc::new(Translate::new(
+        Arc::new(RotateY::new(edge, 120.)),
+        &Vec3::new(2.98, 0., 0.),
+    )));
+
+    world.add(Arc::new(Triangle::new(
+        Point::new(2.5, 22., -0.1),
+        Point::new(1.5, 20., -0.86),
+        Point::new(1.9, 20., -1.5),
+        Arc::new(Lambertian::new(Color::new(1.0, 0.45, 0.45))),
     )));
     BVHNode::new(&mut world, 0., 1.)
 }
